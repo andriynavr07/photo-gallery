@@ -32,7 +32,7 @@ public class ImageService(
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(ext))
-            throw new ArgumentException("Invalid file type");
+            throw new ArgumentException("Invalid file type. Allowed: jpg, jpeg, png, gif, webp");
 
         var uploadsPath = config["Uploads:Path"] ?? "uploads";
         Directory.CreateDirectory(uploadsPath);
@@ -62,9 +62,8 @@ public class ImageService(
             ?? throw new NotFoundException($"Image {imageId} not found");
 
         if (!isAdmin && image.Album.OwnerId != requesterId)
-            throw new ForbiddenException();
+            throw new ForbiddenException("You can only delete images from your own albums");
 
-        // Delete physical file
         var uploadsPath = config["Uploads:Path"] ?? "uploads";
         var filePath = Path.Combine(uploadsPath, image.FileName);
         if (File.Exists(filePath)) File.Delete(filePath);
@@ -83,15 +82,9 @@ public class ImageService(
         if (existing is not null)
         {
             if (existing.IsLike == isLike)
-            {
-                // Same reaction — remove it (toggle off)
-                await likeRepo.DeleteAsync(existing);
-            }
+                await likeRepo.DeleteAsync(existing); // toggle off
             else
-            {
-                // Switch reaction
-                existing.IsLike = isLike;
-            }
+                existing.IsLike = isLike;             // switch
         }
         else
         {
@@ -100,9 +93,8 @@ public class ImageService(
 
         await likeRepo.SaveChangesAsync();
 
-        // Reload likes
-        var updatedImage = await imageRepo.GetByIdAsync(imageId);
-        return MapToDto(updatedImage!, userId);
+        var updated = await imageRepo.GetByIdAsync(imageId);
+        return MapToDto(updated!, userId);
     }
 
     private static ImageDto MapToDto(Image i, int? userId)
@@ -112,6 +104,6 @@ public class ImageService(
         bool? currentUserLike = userId.HasValue
             ? i.Likes.FirstOrDefault(l => l.UserId == userId)?.IsLike
             : null;
-        return new ImageDto(i.Id, i.Url, likes, dislikes, currentUserLike, i.UploadedAt);
+        return new ImageDto(i.Id, i.Url, likes, dislikes, currentUserLike, i.Album.OwnerId, i.UploadedAt);
     }
 }

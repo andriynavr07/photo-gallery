@@ -8,6 +8,10 @@ api.interceptors.request.use(config => {
   return config
 })
 
+// Auth
+export const login = (data) => api.post('/auth/login', data)
+export const register = (data) => api.post('/auth/register', data)
+
 // Albums
 export const getAlbums = (page = 1) => api.get(`/albums?page=${page}&pageSize=5`)
 export const getMyAlbums = () => api.get('/albums/my')
@@ -23,6 +27,3 @@ export const uploadImage = (albumId, file) => {
 }
 export const deleteImage = (id) => api.delete(`/images/${id}`)
 export const toggleLike = (id, isLike) => api.post(`/images/${id}/like`, { isLike })
-
-// Auth
-export const login = (data) => api.post('/auth/login', data)

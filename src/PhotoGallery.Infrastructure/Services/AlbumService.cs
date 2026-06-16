@@ -47,7 +47,7 @@ public class AlbumService(IAlbumRepository albumRepo) : IAlbumService
 
     private static AlbumDto MapToDto(Album a)
     {
-        var cover = a.Images.OrderByDescending(i => i.UploadedAt).FirstOrDefault();
-        return new AlbumDto(a.Id, a.Title, a.Description, a.Owner?.Username ?? "", cover?.Url, a.Images.Count, a.CreatedAt);
+        var cover = a.Images.OrderBy(i => i.UploadedAt).FirstOrDefault();
+        return new AlbumDto(a.Id, a.Title, a.Description, a.OwnerId, a.Owner?.Username ?? "", cover?.Url, a.Images.Count, a.CreatedAt);
     }
 }

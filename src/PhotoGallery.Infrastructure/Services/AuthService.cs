@@ -20,8 +20,29 @@ public class AuthService(IUserRepository userRepo, IConfiguration config) : IAut
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new NotFoundException("Invalid username or password");
 
-        var token = GenerateToken(user);
-        return new LoginResponse(token, user.Username, user.Role);
+        return new LoginResponse(GenerateToken(user), user.Username, user.Role);
+    }
+
+    public async Task<LoginResponse> RegisterAsync(RegisterRequest request)
+    {
+        var existing = await userRepo.GetByUsernameAsync(request.Username);
+        if (existing is not null)
+            throw new ArgumentException("Username already taken");
+
+        if (request.Password.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters");
+
+        var user = new User
+        {
+            Username = request.Username,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Role = "User"
+        };
+
+        await userRepo.AddAsync(user);
+        await userRepo.SaveChangesAsync();
+
+        return new LoginResponse(GenerateToken(user), user.Username, user.Role);
     }
 
     private string GenerateToken(User user)
