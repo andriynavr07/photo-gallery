@@ -5,7 +5,7 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => { logout(); navigate('/albums') }
+  const handleLogout = () => { logout(); navigate('/login') }
 
   return (
     <nav style={styles.nav}>
@@ -15,8 +15,7 @@ export default function Navbar() {
         {user && <Link to="/my-albums" style={styles.link}>My Albums</Link>}
         {user
           ? <button onClick={handleLogout} style={styles.btn}>Logout ({user.username})</button>
-          : <Link to="/login" style={styles.link}>Login</Link>
-        }
+          : <Link to="/login" style={styles.link}>Login</Link>}
       </div>
     </nav>
   )
@@ -27,5 +26,5 @@ const styles = {
   brand: { color:'white', textDecoration:'none', fontSize:'1.2rem', fontWeight:'bold' },
   links: { display:'flex', gap:'16px', alignItems:'center' },
   link: { color:'#ccc', textDecoration:'none' },
-  btn: { background:'transparent', border:'1px solid #ccc', color:'#ccc', padding:'6px 12px', borderRadius:'4px', cursor:'pointer' }
+  btn: { background:'transparent', border:'1px solid #ccc', color:'#ccc', padding:'4px 12px', cursor:'pointer', borderRadius:'4px' }
 }

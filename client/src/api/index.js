@@ -8,35 +8,21 @@ api.interceptors.request.use(config => {
   return config
 })
 
-api.interceptors.response.use(
-  res => res,
-  err => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
-    }
-    return Promise.reject(err)
-  }
-)
+// Albums
+export const getAlbums = (page = 1) => api.get(`/albums?page=${page}&pageSize=5`)
+export const getMyAlbums = () => api.get('/albums/my')
+export const createAlbum = (data) => api.post('/albums', data)
+export const deleteAlbum = (id) => api.delete(`/albums/${id}`)
 
-export const authApi = {
-  login: (data) => api.post('/auth/login', data)
+// Images
+export const getImages = (albumId, page = 1) => api.get(`/albums/${albumId}/images?page=${page}&pageSize=5`)
+export const uploadImage = (albumId, file) => {
+  const form = new FormData()
+  form.append('file', file)
+  return api.post(`/albums/${albumId}/images`, form)
 }
+export const deleteImage = (id) => api.delete(`/images/${id}`)
+export const toggleLike = (id, isLike) => api.post(`/images/${id}/like`, { isLike })
 
-export const albumsApi = {
-  getAll: (page = 1) => api.get(`/albums?page=${page}&pageSize=5`),
-  getMy: () => api.get('/albums/my'),
-  create: (data) => api.post('/albums', data),
-  delete: (id) => api.delete(`/albums/${id}`),
-  getImages: (id, page = 1) => api.get(`/albums/${id}/images?page=${page}&pageSize=5`),
-  uploadImage: (id, file) => {
-    const form = new FormData()
-    form.append('file', file)
-    return api.post(`/albums/${id}/images`, form)
-  }
-}
-
-export const imagesApi = {
-  delete: (id) => api.delete(`/images/${id}`),
-  like: (id, isLike) => api.post(`/images/${id}/like`, { isLike })
-}
+// Auth
+export const login = (data) => api.post('/auth/login', data)

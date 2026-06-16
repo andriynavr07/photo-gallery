@@ -10,14 +10,14 @@ public class AlbumService(IAlbumRepository albumRepo) : IAlbumService
     public async Task<PagedResult<AlbumDto>> GetAllAsync(int page, int pageSize)
     {
         var (items, total) = await albumRepo.GetPagedAsync(page, pageSize);
-        var dtos = items.Select(ToDto);
+        var dtos = items.Select(MapToDto);
         return new PagedResult<AlbumDto>(dtos, total, page, pageSize);
     }
 
     public async Task<IEnumerable<AlbumDto>> GetMyAlbumsAsync(int userId)
     {
         var albums = await albumRepo.GetByOwnerAsync(userId);
-        return albums.Select(ToDto);
+        return albums.Select(MapToDto);
     }
 
     public async Task<AlbumDto> CreateAsync(CreateAlbumRequest request, int userId)
@@ -30,7 +30,7 @@ public class AlbumService(IAlbumRepository albumRepo) : IAlbumService
         };
         await albumRepo.AddAsync(album);
         await albumRepo.SaveChangesAsync();
-        return ToDto(album);
+        return MapToDto(album);
     }
 
     public async Task DeleteAsync(int albumId, int requesterId, bool isAdmin)
@@ -45,12 +45,9 @@ public class AlbumService(IAlbumRepository albumRepo) : IAlbumService
         await albumRepo.SaveChangesAsync();
     }
 
-    private static AlbumDto ToDto(Album a) => new(
-        a.Id,
-        a.Title,
-        a.Description,
-        a.Owner?.Username ?? "",
-        a.Images.FirstOrDefault()?.Url,
-        a.Images.Count,
-        a.CreatedAt);
+    private static AlbumDto MapToDto(Album a)
+    {
+        var cover = a.Images.OrderByDescending(i => i.UploadedAt).FirstOrDefault();
+        return new AlbumDto(a.Id, a.Title, a.Description, a.Owner?.Username ?? "", cover?.Url, a.Images.Count, a.CreatedAt);
+    }
 }

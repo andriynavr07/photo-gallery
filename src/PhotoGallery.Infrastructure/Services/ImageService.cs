@@ -9,14 +9,16 @@ namespace PhotoGallery.Infrastructure.Services;
 
 public class ImageService(
     IImageRepository imageRepo,
-    IAlbumRepository albumRepo,
     ILikeRepository likeRepo,
+    IAlbumRepository albumRepo,
     IConfiguration config) : IImageService
 {
+    private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+
     public async Task<PagedResult<ImageDto>> GetByAlbumAsync(int albumId, int page, int pageSize, int? userId)
     {
         var (items, total) = await imageRepo.GetByAlbumPagedAsync(albumId, page, pageSize);
-        var dtos = items.Select(i => ToDto(i, userId));
+        var dtos = items.Select(i => MapToDto(i, userId));
         return new PagedResult<ImageDto>(dtos, total, page, pageSize);
     }
 
@@ -28,10 +30,14 @@ public class ImageService(
         if (album.OwnerId != userId)
             throw new ForbiddenException("You can only upload to your own albums");
 
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedExtensions.Contains(ext))
+            throw new ArgumentException("Invalid file type");
+
         var uploadsPath = config["Uploads:Path"] ?? "uploads";
         Directory.CreateDirectory(uploadsPath);
 
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var fileName = $"{Guid.NewGuid()}{ext}";
         var filePath = Path.Combine(uploadsPath, fileName);
 
         await using var stream = File.Create(filePath);
@@ -47,7 +53,7 @@ public class ImageService(
         await imageRepo.AddAsync(image);
         await imageRepo.SaveChangesAsync();
 
-        return ToDto(image, userId);
+        return MapToDto(image, userId);
     }
 
     public async Task DeleteAsync(int imageId, int requesterId, bool isAdmin)
@@ -94,18 +100,18 @@ public class ImageService(
 
         await likeRepo.SaveChangesAsync();
 
-        // Reload image to get fresh likes
-        image = await imageRepo.GetByIdAsync(imageId)!;
-        return ToDto(image!, userId);
+        // Reload likes
+        var updatedImage = await imageRepo.GetByIdAsync(imageId);
+        return MapToDto(updatedImage!, userId);
     }
 
-    private static ImageDto ToDto(Image i, int? userId)
+    private static ImageDto MapToDto(Image i, int? userId)
     {
         var likes = i.Likes.Count(l => l.IsLike);
         var dislikes = i.Likes.Count(l => !l.IsLike);
-        var userLike = userId.HasValue
+        bool? currentUserLike = userId.HasValue
             ? i.Likes.FirstOrDefault(l => l.UserId == userId)?.IsLike
             : null;
-        return new ImageDto(i.Id, i.Url, likes, dislikes, userLike, i.UploadedAt);
+        return new ImageDto(i.Id, i.Url, likes, dislikes, currentUserLike, i.UploadedAt);
     }
 }

@@ -1,51 +1,45 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authApi } from '../api'
+import { login } from '../api'
 import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { loginUser } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true); setError('')
+    setError('')
     try {
-      const { data } = await authApi.login(form)
-      login(data.token)
+      const { data } = await login(form)
+      loginUser(data.token)
       navigate('/albums')
     } catch {
       setError('Invalid username or password')
-    } finally { setLoading(false) }
+    }
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.wrapper}>
       <form onSubmit={handleSubmit} style={styles.form}>
-        <h2 style={{ marginBottom:'24px', color:'white' }}>Sign In</h2>
-        {error && <div style={styles.error}>{error}</div>}
+        <h2>Sign In</h2>
+        {error && <p style={styles.error}>{error}</p>}
         <input style={styles.input} placeholder="Username" value={form.username}
-          onChange={e => setForm(f => ({...f, username: e.target.value}))} required />
+          onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
         <input style={styles.input} type="password" placeholder="Password" value={form.password}
-          onChange={e => setForm(f => ({...f, password: e.target.value}))} required />
-        <button type="submit" disabled={loading} style={styles.btn}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-        <p style={{ color:'#aaa', marginTop:'12px', fontSize:'0.85rem' }}>
-          Default admin: <strong style={{color:'white'}}>admin / Admin123!</strong>
-        </p>
+          onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+        <button type="submit" style={styles.btn}>Login</button>
       </form>
     </div>
   )
 }
 
 const styles = {
-  container: { minHeight:'80vh', display:'flex', alignItems:'center', justifyContent:'center' },
-  form: { background:'#1a1a2e', padding:'40px', borderRadius:'12px', width:'320px', display:'flex', flexDirection:'column', gap:'12px' },
-  input: { padding:'10px 14px', borderRadius:'6px', border:'1px solid #444', background:'#0f3460', color:'white', fontSize:'1rem' },
-  btn: { padding:'12px', background:'#6c63ff', color:'white', border:'none', borderRadius:'6px', fontSize:'1rem', cursor:'pointer' },
-  error: { background:'#ff4444', color:'white', padding:'8px 12px', borderRadius:'6px', fontSize:'0.9rem' }
+  wrapper: { display:'flex', justifyContent:'center', alignItems:'center', minHeight:'80vh' },
+  form: { display:'flex', flexDirection:'column', gap:'12px', width:'300px', padding:'32px', background:'white', borderRadius:'8px', boxShadow:'0 2px 12px rgba(0,0,0,0.1)' },
+  input: { padding:'10px', border:'1px solid #ddd', borderRadius:'4px', fontSize:'14px' },
+  btn: { padding:'10px', background:'#1a1a2e', color:'white', border:'none', borderRadius:'4px', cursor:'pointer', fontSize:'15px' },
+  error: { color:'red', fontSize:'13px', margin:0 }
 }

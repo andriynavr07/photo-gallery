@@ -23,14 +23,16 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
     {
         var (status, message) = ex switch
         {
-            NotFoundException e => (HttpStatusCode.NotFound, e.Message),
-            ForbiddenException e => (HttpStatusCode.Forbidden, e.Message),
+            NotFoundException => (HttpStatusCode.NotFound, ex.Message),
+            ForbiddenException => (HttpStatusCode.Forbidden, ex.Message),
+            ArgumentException => (HttpStatusCode.BadRequest, ex.Message),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred")
         };
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
 
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new { error = message }));
+        var body = JsonSerializer.Serialize(new { error = message });
+        return context.Response.WriteAsync(body);
     }
 }

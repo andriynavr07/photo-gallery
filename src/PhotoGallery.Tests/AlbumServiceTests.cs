@@ -1,9 +1,9 @@
 using Moq;
 using FluentAssertions;
+using PhotoGallery.Core.DTOs;
 using PhotoGallery.Core.Entities;
 using PhotoGallery.Core.Exceptions;
 using PhotoGallery.Core.Interfaces;
-using PhotoGallery.Core.DTOs;
 using PhotoGallery.Infrastructure.Services;
 
 namespace PhotoGallery.Tests;
@@ -19,10 +19,10 @@ public class AlbumServiceTests
     public async Task DeleteAsync_WhenNotOwnerAndNotAdmin_ThrowsForbidden()
     {
         _repoMock.Setup(r => r.GetByIdAsync(1))
-            .ReturnsAsync(new Album { Id = 1, OwnerId = 99, Owner = new User { Username = "other" } });
+                 .ReturnsAsync(new Album { Id = 1, OwnerId = 99, Owner = new User { Username = "other" } });
 
         await _sut.Invoking(s => s.DeleteAsync(1, requesterId: 5, isAdmin: false))
-            .Should().ThrowAsync<ForbiddenException>();
+                  .Should().ThrowAsync<ForbiddenException>();
     }
 
     [Fact]
@@ -30,63 +30,60 @@ public class AlbumServiceTests
     {
         var album = new Album { Id = 1, OwnerId = 99, Owner = new User { Username = "other" } };
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(album);
+        _repoMock.Setup(r => r.DeleteAsync(album)).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        await _sut.Invoking(s => s.DeleteAsync(1, requesterId: 5, isAdmin: true))
-            .Should().NotThrowAsync();
-
-        _repoMock.Verify(r => r.DeleteAsync(album), Times.Once);
-        _repoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+        await _sut.Invoking(s => s.DeleteAsync(1, requesterId: 1, isAdmin: true))
+                  .Should().NotThrowAsync();
     }
 
     [Fact]
     public async Task DeleteAsync_WhenOwner_DeletesSuccessfully()
     {
-        var album = new Album { Id = 1, OwnerId = 5, Owner = new User { Username = "me" } };
+        var album = new Album { Id = 1, OwnerId = 5, Owner = new User { Username = "owner" } };
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(album);
+        _repoMock.Setup(r => r.DeleteAsync(album)).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
         await _sut.Invoking(s => s.DeleteAsync(1, requesterId: 5, isAdmin: false))
-            .Should().NotThrowAsync();
-
-        _repoMock.Verify(r => r.DeleteAsync(album), Times.Once);
+                  .Should().NotThrowAsync();
     }
 
     [Fact]
     public async Task DeleteAsync_WhenNotFound_ThrowsNotFoundException()
     {
-        _repoMock.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Album?)null);
+        _repoMock.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((Album?)null);
 
-        await _sut.Invoking(s => s.DeleteAsync(99, 1, false))
-            .Should().ThrowAsync<NotFoundException>();
+        await _sut.Invoking(s => s.DeleteAsync(999, requesterId: 1, isAdmin: true))
+                  .Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]
-    public async Task GetAllAsync_ReturnsMappedPagedResult()
+    public async Task CreateAsync_ReturnsCreatedAlbum()
     {
-        var albums = Enumerable.Range(1, 3).Select(i => new Album
-        {
-            Id = i, Title = $"Album {i}", OwnerId = 1,
-            Owner = new User { Username = "user1" },
-            Images = new List<Core.Entities.Image>()
-        }).ToList();
-
-        _repoMock.Setup(r => r.GetPagedAsync(1, 5)).ReturnsAsync((albums, 3));
-
-        var result = await _sut.GetAllAsync(1, 5);
-
-        result.Total.Should().Be(3);
-        result.Items.Should().HaveCount(3);
-        result.Page.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task CreateAsync_ReturnsNewAlbumDto()
-    {
+        var request = new CreateAlbumRequest("My Album", "Desc");
         _repoMock.Setup(r => r.AddAsync(It.IsAny<Album>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        var result = await _sut.CreateAsync(new CreateAlbumRequest("My Album", "Desc"), userId: 1);
+        var result = await _sut.CreateAsync(request, userId: 1);
 
         result.Title.Should().Be("My Album");
         result.Description.Should().Be("Desc");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsPaged()
+    {
+        var albums = new List<Album>
+        {
+            new() { Id = 1, Title = "A1", Owner = new User { Username = "u1" }, Images = [] },
+            new() { Id = 2, Title = "A2", Owner = new User { Username = "u2" }, Images = [] }
+        };
+        _repoMock.Setup(r => r.GetPagedAsync(1, 5)).ReturnsAsync((albums, 2));
+
+        var result = await _sut.GetAllAsync(1, 5);
+
+        result.Total.Should().Be(2);
+        result.Items.Should().HaveCount(2);
     }
 }

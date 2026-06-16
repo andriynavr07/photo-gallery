@@ -1,32 +1,55 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PhotoGallery.Core.DTOs;
 using PhotoGallery.Core.Interfaces;
 
 namespace PhotoGallery.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api")]
 public class ImagesController(IImageService imageService) : ControllerBase
 {
-    private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-    private bool IsAdmin => User.IsInRole("Admin");
+    [HttpGet("albums/{albumId}/images")]
+    public async Task<IActionResult> GetByAlbum(int albumId, [FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    {
+        var userId = TryGetUserId();
+        var result = await imageService.GetByAlbumAsync(albumId, page, pageSize, userId);
+        return Ok(result);
+    }
 
-    [HttpDelete("{id}")]
+    [HttpPost("albums/{albumId}/images")]
+    [Authorize]
+    public async Task<IActionResult> Upload(int albumId, IFormFile file)
+    {
+        var userId = GetUserId();
+        var result = await imageService.UploadAsync(albumId, file, userId);
+        return CreatedAtAction(nameof(GetByAlbum), new { albumId }, result);
+    }
+
+    [HttpDelete("images/{id}")]
     [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
-        await imageService.DeleteAsync(id, UserId, IsAdmin);
+        var userId = GetUserId();
+        var isAdmin = User.IsInRole("Admin");
+        await imageService.DeleteAsync(id, userId, isAdmin);
         return NoContent();
     }
 
-    [HttpPost("{id}/like")]
+    [HttpPost("images/{id}/like")]
     [Authorize]
-    public async Task<ActionResult<ImageDto>> Like(int id, [FromBody] LikeRequest request)
+    public async Task<IActionResult> ToggleLike(int id, [FromBody] LikeRequest request)
     {
-        var result = await imageService.ToggleLikeAsync(id, UserId, request.IsLike);
+        var userId = GetUserId();
+        var result = await imageService.ToggleLikeAsync(id, userId, request.IsLike);
         return Ok(result);
+    }
+
+    private int GetUserId() => int.Parse(User.FindFirstValue("userId")!);
+    private int? TryGetUserId()
+    {
+        var claim = User.FindFirstValue("userId");
+        return claim is null ? null : int.Parse(claim);
     }
 }
 

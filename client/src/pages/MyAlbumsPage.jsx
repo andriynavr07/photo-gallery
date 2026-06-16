@@ -1,93 +1,93 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { albumsApi } from '../api'
+import { getMyAlbums, createAlbum, deleteAlbum } from '../api'
 
 export default function MyAlbumsPage() {
   const [albums, setAlbums] = useState([])
   const [form, setForm] = useState({ title: '', description: '' })
-  const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
 
   const load = async () => {
-    setLoading(true)
-    try { const res = await albumsApi.getMy(); setAlbums(res.data) }
-    finally { setLoading(false) }
+    const res = await getMyAlbums()
+    setAlbums(res.data)
   }
 
   useEffect(() => { load() }, [])
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    await albumsApi.create(form)
+    await createAlbum(form)
     setForm({ title: '', description: '' })
-    setShowForm(false)
+    setCreating(false)
     load()
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this album?')) return
-    await albumsApi.delete(id)
+    if (!confirm('Delete this album and all its photos?')) return
+    await deleteAlbum(id)
     load()
   }
 
   return (
     <div style={styles.container}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px' }}>
-        <h1 style={{ color:'white' }}>My Albums</h1>
-        <button onClick={() => setShowForm(!showForm)} style={styles.createBtn}>
-          {showForm ? '✕ Cancel' : '+ New Album'}
-        </button>
+      <div style={styles.header}>
+        <h2>My Albums</h2>
+        <button onClick={() => setCreating(c => !c)} style={styles.addBtn}>+ New Album</button>
       </div>
 
-      {showForm && (
+      {creating && (
         <form onSubmit={handleCreate} style={styles.form}>
           <input style={styles.input} placeholder="Album title" value={form.title}
-            onChange={e => setForm(f => ({...f, title: e.target.value}))} required />
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
           <input style={styles.input} placeholder="Description (optional)" value={form.description}
-            onChange={e => setForm(f => ({...f, description: e.target.value}))} />
-          <button type="submit" style={styles.createBtn}>Create Album</button>
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          <div style={{ display:'flex', gap:'8px' }}>
+            <button type="submit" style={styles.btn}>Create</button>
+            <button type="button" onClick={() => setCreating(false)} style={styles.cancelBtn}>Cancel</button>
+          </div>
         </form>
       )}
 
-      {loading ? <p style={{color:'#aaa'}}>Loading...</p> : albums.length === 0
-        ? <p style={{color:'#aaa'}}>No albums yet. Create your first one!</p>
-        : (
-          <div style={styles.grid}>
-            {albums.map(album => (
-              <div key={album.id} style={styles.card}>
-                <Link to={`/albums/${album.id}`} style={{ textDecoration:'none', color:'white' }}>
-                  <div style={styles.cover}>
-                    {album.coverUrl
-                      ? <img src={album.coverUrl} alt={album.title} style={styles.img} />
-                      : <div style={styles.placeholder}>📷</div>}
-                  </div>
-                  <div style={styles.info}>
-                    <h3 style={styles.albumTitle}>{album.title}</h3>
-                    <p style={styles.meta}>{album.imageCount} photos</p>
-                  </div>
-                </Link>
-                <button onClick={() => handleDelete(album.id)} style={styles.deleteBtn}>🗑</button>
+      <div style={styles.grid}>
+        {albums.map(album => (
+          <div key={album.id} style={styles.card}>
+            <Link to={`/albums/${album.id}`} style={styles.link}>
+              <div style={styles.cover}>
+                {album.coverUrl
+                  ? <img src={album.coverUrl} alt={album.title} style={styles.img} />
+                  : <div style={styles.placeholder}>No photos yet</div>}
               </div>
-            ))}
+              <div style={styles.info}>
+                <strong>{album.title}</strong>
+                <span style={styles.meta}>{album.imageCount} photos</span>
+              </div>
+            </Link>
+            <button onClick={() => handleDelete(album.id)} style={styles.delBtn}>🗑</button>
           </div>
-        )
-      }
+        ))}
+        {albums.length === 0 && !creating && (
+          <p style={{ color:'#888' }}>No albums yet. Create your first one!</p>
+        )}
+      </div>
     </div>
   )
 }
 
 const styles = {
-  container: { maxWidth:'1100px', margin:'0 auto', padding:'32px 16px' },
-  createBtn: { background:'#6c63ff', border:'none', color:'white', padding:'10px 20px', borderRadius:'6px', cursor:'pointer', fontSize:'0.95rem' },
-  form: { background:'#1a1a2e', padding:'20px', borderRadius:'10px', display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap' },
-  input: { padding:'10px 14px', borderRadius:'6px', border:'1px solid #444', background:'#0f3460', color:'white', fontSize:'1rem', flex:1 },
-  grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'20px' },
-  card: { background:'#1a1a2e', borderRadius:'10px', overflow:'hidden', position:'relative' },
-  cover: { height:'150px', overflow:'hidden' },
+  container: { maxWidth:'900px', margin:'0 auto', padding:'24px' },
+  header: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' },
+  addBtn: { background:'#1a1a2e', color:'white', border:'none', padding:'8px 16px', borderRadius:'4px', cursor:'pointer' },
+  form: { display:'flex', flexDirection:'column', gap:'8px', marginBottom:'24px', padding:'16px', background:'white', borderRadius:'8px', boxShadow:'0 1px 4px rgba(0,0,0,0.1)' },
+  input: { padding:'8px', border:'1px solid #ddd', borderRadius:'4px' },
+  btn: { padding:'8px 16px', background:'#38a169', color:'white', border:'none', borderRadius:'4px', cursor:'pointer' },
+  cancelBtn: { padding:'8px 16px', background:'#e2e8f0', border:'none', borderRadius:'4px', cursor:'pointer' },
+  grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:'16px' },
+  card: { background:'white', borderRadius:'8px', overflow:'hidden', boxShadow:'0 2px 8px rgba(0,0,0,0.1)', position:'relative' },
+  link: { textDecoration:'none', color:'inherit' },
+  cover: { height:'140px', background:'#eee', overflow:'hidden' },
   img: { width:'100%', height:'100%', objectFit:'cover' },
-  placeholder: { height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem', background:'#0f3460' },
-  info: { padding:'12px' },
-  albumTitle: { margin:'0 0 4px', fontSize:'1rem' },
-  meta: { margin:0, color:'#aaa', fontSize:'0.8rem' },
-  deleteBtn: { position:'absolute', top:'8px', right:'8px', background:'#ff4444', border:'none', color:'white', padding:'4px 8px', borderRadius:'4px', cursor:'pointer' }
+  placeholder: { height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#aaa', fontSize:'13px' },
+  info: { padding:'10px', display:'flex', flexDirection:'column', gap:'4px' },
+  meta: { fontSize:'12px', color:'#888' },
+  delBtn: { position:'absolute', top:'8px', right:'8px', background:'#e53e3e', color:'white', border:'none', borderRadius:'4px', padding:'4px 8px', cursor:'pointer' }
 }

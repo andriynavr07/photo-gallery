@@ -8,49 +8,43 @@ namespace PhotoGallery.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AlbumsController(IAlbumService albumService, IImageService imageService) : ControllerBase
+public class AlbumsController(IAlbumService albumService) : ControllerBase
 {
-    private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-    private bool IsAdmin => User.IsInRole("Admin");
-
     [HttpGet]
-    public async Task<ActionResult<PagedResult<AlbumDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
-        => Ok(await albumService.GetAllAsync(page, pageSize));
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    {
+        var result = await albumService.GetAllAsync(page, pageSize);
+        return Ok(result);
+    }
 
     [HttpGet("my")]
     [Authorize]
-    public async Task<ActionResult<IEnumerable<AlbumDto>>> GetMy()
-        => Ok(await albumService.GetMyAlbumsAsync(UserId));
+    public async Task<IActionResult> GetMy()
+    {
+        var userId = GetUserId();
+        var result = await albumService.GetMyAlbumsAsync(userId);
+        return Ok(result);
+    }
 
     [HttpPost]
     [Authorize]
-    public async Task<ActionResult<AlbumDto>> Create(CreateAlbumRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateAlbumRequest request)
     {
-        var album = await albumService.CreateAsync(request, UserId);
-        return CreatedAtAction(nameof(GetAll), new { id = album.Id }, album);
+        var userId = GetUserId();
+        var result = await albumService.CreateAsync(request, userId);
+        return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
     }
 
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
-        await albumService.DeleteAsync(id, UserId, IsAdmin);
+        var userId = GetUserId();
+        var isAdmin = User.IsInRole("Admin");
+        await albumService.DeleteAsync(id, userId, isAdmin);
         return NoContent();
     }
 
-    [HttpGet("{id}/images")]
-    public async Task<ActionResult<PagedResult<ImageDto>>> GetImages(
-        int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 5)
-    {
-        int? userId = User.Identity?.IsAuthenticated == true ? UserId : null;
-        return Ok(await imageService.GetByAlbumAsync(id, page, pageSize, userId));
-    }
-
-    [HttpPost("{id}/images")]
-    [Authorize]
-    public async Task<ActionResult<ImageDto>> UploadImage(int id, IFormFile file)
-    {
-        var image = await imageService.UploadAsync(id, file, UserId);
-        return Ok(image);
-    }
+    private int GetUserId() =>
+        int.Parse(User.FindFirstValue("userId")!);
 }

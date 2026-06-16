@@ -8,9 +8,11 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PhotoGallery.Infrastructure\PhotoGallery.Infrastructure.csproj" />
+    <ProjectReference Include="../PhotoGallery.Core/PhotoGallery.Core.csproj" />
+    <ProjectReference Include="../PhotoGallery.Infrastructure/PhotoGallery.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

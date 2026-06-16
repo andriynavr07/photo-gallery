@@ -4,22 +4,23 @@ const AuthContext = createContext(null)
 
 function parseJwt(token) {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    return { username: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'],
-             role: payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
-             id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] }
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64))
   } catch { return null }
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token')
-    return token ? parseJwt(token) : null
+    if (!token) return null
+    const payload = parseJwt(token)
+    return payload ? { username: payload.unique_name, role: payload.role, userId: payload.userId } : null
   })
 
-  const login = (token) => {
+  const loginUser = (token) => {
     localStorage.setItem('token', token)
-    setUser(parseJwt(token))
+    const payload = parseJwt(token)
+    setUser({ username: payload.unique_name, role: payload.role, userId: payload.userId })
   }
 
   const logout = () => {
@@ -28,7 +29,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin: user?.role === 'Admin' }}>
+    <AuthContext.Provider value={{ user, loginUser, logout, isAdmin: user?.role === 'Admin' }}>
       {children}
     </AuthContext.Provider>
   )
