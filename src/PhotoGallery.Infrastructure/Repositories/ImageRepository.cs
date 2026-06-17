@@ -9,18 +9,26 @@ public class ImageRepository(AppDbContext db) : IImageRepository
 {
     public async Task<(IEnumerable<Image> Items, int Total)> GetByAlbumPagedAsync(int albumId, int page, int pageSize)
     {
-        var query = db.Images.Include(i => i.Likes).Where(i => i.AlbumId == albumId);
+        var query = db.Images
+            .Include(i => i.Likes)
+            .Include(i => i.Album)   // required for MapToDto -> i.Album.OwnerId
+            .Where(i => i.AlbumId == albumId);
+
         var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(i => i.UploadedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
         return (items, total);
     }
 
     public async Task<Image?> GetByIdAsync(int id) =>
-        await db.Images.Include(i => i.Likes).Include(i => i.Album).FirstOrDefaultAsync(i => i.Id == id);
+        await db.Images
+            .Include(i => i.Likes)
+            .Include(i => i.Album)
+            .FirstOrDefaultAsync(i => i.Id == id);
 
     public async Task AddAsync(Image image) => await db.Images.AddAsync(image);
 

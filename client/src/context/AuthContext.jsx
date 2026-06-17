@@ -9,18 +9,25 @@ function parseJwt(token) {
   } catch { return null }
 }
 
+function userFromToken(token) {
+  const payload = parseJwt(token)
+  if (!payload) return null
+  return {
+    userId: payload.userId,       // "userId" claim
+    username: payload.username,   // "username" claim
+    role: payload.role            // "role" claim
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token')
-    if (!token) return null
-    const payload = parseJwt(token)
-    return payload ? { username: payload.unique_name, role: payload.role, userId: payload.userId } : null
+    return token ? userFromToken(token) : null
   })
 
   const loginUser = (token) => {
     localStorage.setItem('token', token)
-    const payload = parseJwt(token)
-    setUser({ username: payload.unique_name, role: payload.role, userId: payload.userId })
+    setUser(userFromToken(token))
   }
 
   const logout = () => {

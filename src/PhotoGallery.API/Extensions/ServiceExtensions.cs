@@ -20,6 +20,9 @@ public static class ServiceExtensions
 
     public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
     {
+        // Disable default claim type mapping so "role" stays as "role" (not remapped to long URI)
+        System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opt =>
             {
@@ -35,6 +38,7 @@ public static class ServiceExtensions
                         Encoding.UTF8.GetBytes(config["Jwt:Key"]!))
                 };
             });
+
         services.AddAuthorization();
         return services;
     }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.FileProviders;
 using PhotoGallery.API.Extensions;
 using PhotoGallery.API.Middleware;
 using PhotoGallery.Infrastructure.Data;
@@ -22,12 +23,15 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-// Auto-migrate on startup
+// Auto-migrate and ensure uploads folder exists
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
+
+var uploadsPath = builder.Configuration["Uploads:Path"] ?? "uploads";
+Directory.CreateDirectory(uploadsPath);
 
 if (app.Environment.IsDevelopment())
 {
@@ -37,11 +41,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors();
-app.UseStaticFiles();
+
+// Serve uploads folder as /uploads/** (outside wwwroot)
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, uploadsPath)),
+    RequestPath = "/uploads"
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
 
-public partial class Program { } // for testing
+public partial class Program { }

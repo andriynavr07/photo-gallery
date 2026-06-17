@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PhotoGallery.Core.DTOs;
@@ -21,8 +20,7 @@ public class AlbumsController(IAlbumService albumService) : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetMy()
     {
-        var userId = GetUserId();
-        var result = await albumService.GetMyAlbumsAsync(userId);
+        var result = await albumService.GetMyAlbumsAsync(GetUserId());
         return Ok(result);
     }
 
@@ -30,21 +28,18 @@ public class AlbumsController(IAlbumService albumService) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateAlbumRequest request)
     {
-        var userId = GetUserId();
-        var result = await albumService.CreateAsync(request, userId);
+        var result = await albumService.CreateAsync(request, GetUserId());
         return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
-        var userId = GetUserId();
-        var isAdmin = User.IsInRole("Admin");
-        await albumService.DeleteAsync(id, userId, isAdmin);
+        await albumService.DeleteAsync(id, GetUserId(), IsAdmin());
         return NoContent();
     }
 
-    private int GetUserId() =>
-        int.Parse(User.FindFirstValue("userId")!);
+    private int GetUserId() => int.Parse(User.FindFirstValue("userId")!);
+    private bool IsAdmin() => User.FindFirstValue("role") == "Admin";
 }

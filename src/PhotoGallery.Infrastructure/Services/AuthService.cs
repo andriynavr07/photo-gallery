@@ -50,11 +50,12 @@ public class AuthService(IUserRepository userRepo, IConfiguration config) : IAut
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // Use short claim names so frontend can read them without URI mapping
         var claims = new[]
         {
             new Claim("userId", user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim("username", user.Username),
+            new Claim("role", user.Role)
         };
 
         var token = new JwtSecurityToken(

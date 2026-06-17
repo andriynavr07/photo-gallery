@@ -9,21 +9,30 @@ public class AlbumRepository(AppDbContext db) : IAlbumRepository
 {
     public async Task<(IEnumerable<Album> Items, int Total)> GetPagedAsync(int page, int pageSize)
     {
-        var query = db.Albums.Include(a => a.Owner).Include(a => a.Images);
+        var query = db.Albums
+            .Include(a => a.Owner)
+            .Include(a => a.Images);
+
         var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(a => a.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
         return (items, total);
     }
 
     public async Task<Album?> GetByIdAsync(int id) =>
-        await db.Albums.Include(a => a.Owner).Include(a => a.Images).FirstOrDefaultAsync(a => a.Id == id);
+        await db.Albums
+            .Include(a => a.Owner)
+            .Include(a => a.Images)
+            .FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<IEnumerable<Album>> GetByOwnerAsync(int userId) =>
-        await db.Albums.Include(a => a.Images)
+        await db.Albums
+            .Include(a => a.Owner)   // required for a.Owner?.Username in MapToDto
+            .Include(a => a.Images)
             .Where(a => a.OwnerId == userId)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();

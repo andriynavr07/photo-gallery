@@ -41,12 +41,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(l => l.Image).WithMany(i => i.Likes).HasForeignKey(l => l.ImageId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Seed admin user (password: Admin123!)
+        // Seed: admin / Admin123!
+        // Hash pre-computed to keep migrations deterministic
         modelBuilder.Entity<User>().HasData(new User
         {
             Id = 1,
             Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            PasswordHash = "$2a$11$Tl3UMf7pGfDOc5bHvJtNH.oQxHnmEkLbF4wSPzNqY3RiKdX2MgvWa",
             Role = "Admin"
         });
     }
